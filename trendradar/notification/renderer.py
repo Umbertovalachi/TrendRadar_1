@@ -25,45 +25,32 @@ def render_feishu_content(
     rss_items: Optional[list] = None,
     show_new_section: bool = True,
 ) -> str:
-    """渲染飞书通知内容（支持热榜+RSS合并）
-
-    Args:
-        report_data: 报告数据字典，包含 stats, new_titles, failed_ids, total_new_count
-        update_info: 版本更新信息（可选）
-        mode: 报告模式 ("daily", "incremental", "current")
-        separator: 内容分隔符
-        region_order: 区域显示顺序列表
-        get_time_func: 获取当前时间的函数（可选，默认使用 datetime.now()）
-        rss_items: RSS 条目列表（可选，用于合并推送）
-        show_new_section: 是否显示新增热点区域
-
-    Returns:
-        格式化的飞书消息内容
-    """
+    """渲染飞书通知内容（支持热榜+RSS合并）"""
     if region_order is None:
         region_order = DEFAULT_REGION_ORDER
 
+    # 1. 顶部汇总信息（可选，根据你的需求决定是否保留）
+    now = get_time_func() if get_time_func else datetime.now()
+    
     # 生成热点词汇统计部分
     stats_content = ""
     if report_data["stats"]:
         stats_content += "📊 **热点词汇统计**\n\n"
 
-        total_count = len(report_data["stats"])
-
         for i, stat in enumerate(report_data["stats"]):
             word = stat["word"]
             count = stat["count"]
 
-            sequence_display = f"<font color='grey'>[{i + 1}/{total_count}]</font>"
-
+            # 修改点 1：去掉了 [i/total] 统计，去掉了所有 font 标签颜色
             if count >= 10:
-                stats_content += f"🔥 {sequence_display} **{word}** : <font color='red'>{count}</font> 条\n\n"
+                stats_content += f"🔥 **{word}** : {count} 条\n\n"
             elif count >= 5:
-                stats_content += f"📈 {sequence_display} **{word}** : <font color='orange'>{count}</font> 条\n\n"
+                stats_content += f"📈 **{word}** : {count} 条\n\n"
             else:
-                stats_content += f"📌 {sequence_display} **{word}** : {count} 条\n\n"
+                stats_content += f"📌 **{word}** : {count} 条\n\n"
 
             for j, title_data in enumerate(stat["titles"], 1):
+                # 这里会调用你刚才修改好的 formatter.py，实现单行排版
                 formatted_title = format_title_for_platform(
                     "feishu", title_data, show_source=True
                 )
@@ -84,7 +71,7 @@ def render_feishu_content(
 
         for source_data in report_data["new_titles"]:
             new_titles_content += (
-                f"**{source_data['source_name']}** ({len(source_data['titles'])} 条):\n"
+                f"**{source_data['source_name']}** ({len(source_data['titles'])} 条):\n\n"
             )
 
             for j, title_data in enumerate(source_data["titles"], 1):
@@ -119,30 +106,25 @@ def render_feishu_content(
             text_content += content
 
     if not text_content:
+        mode_text = "暂无匹配的热点词汇"
         if mode == "incremental":
             mode_text = "增量模式下暂无新增匹配的热点词汇"
         elif mode == "current":
             mode_text = "当前榜单模式下暂无匹配的热点词汇"
-        else:
-            mode_text = "暂无匹配的热点词汇"
         text_content = f"📭 {mode_text}\n\n"
 
     if report_data["failed_ids"]:
         if text_content and "暂无匹配" not in text_content:
             text_content += f"\n{separator}\n\n"
-
         text_content += "⚠️ **数据获取失败的平台：**\n\n"
         for i, id_value in enumerate(report_data["failed_ids"], 1):
-            text_content += f"  • <font color='red'>{id_value}</font>\n"
+            text_content += f"  • {id_value}\n"
 
-    # 获取当前时间
-    now = get_time_func() if get_time_func else datetime.now()
-    text_content += (
-        f"\n\n<font color='grey'>更新时间：{now.strftime('%Y-%m-%d %H:%M:%S')}</font>"
-    )
+    # 修改点 2：页脚去掉了 font 标签乱码，改用引用的简洁样式
+    text_content += f"\n\n> 更新时间：{now.strftime('%Y-%m-%d %H:%M:%S')}"
 
     if update_info:
-        text_content += f"\n<font color='grey'>TrendRadar 发现新版本 {update_info['remote_version']}，当前 {update_info['current_version']}</font>"
+        text_content += f"\n> 发现新版本 {update_info['remote_version']} (当前: {update_info['current_version']})"
 
     return text_content
 
