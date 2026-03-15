@@ -54,21 +54,28 @@ def format_title_for_platform(
     # 获取关键词标签（platform 模式使用）
     keyword = title_data.get("matched_keyword", "") if show_keyword else ""
 
-    if platform == "feishu":
-        title_prefix = "🔥 " if title_data.get("is_new") else "📍 "
+   if platform == "feishu":
+        # 1. 准备数据
         link_url = title_data["mobile_url"] or title_data["url"]
+        cleaned_title = clean_title(title_data["title"])
+        title_prefix = "🔥 " if title_data.get("is_new") else "📍 "
         
-        # 样式：📍 标题名称
-        #      来源：xxx | 时间
-        #      🔗 [原文链接](url)
+        # 2. 标题行 (单列一行)
         result = f"{title_prefix}**{cleaned_title}**\n"
-        result += f"<font color='grey'>来源：{title_data['source_name']}</font>"
         
-        if title_data["time_display"]:
-            result += f"<font color='grey'> | {title_data['time_display']}</font>"
+        # 3. 来源与时间行 (单列一行，去掉 font 标签)
+        source_info = f"来源：{title_data['source_name']}"
+        time_info = f" | {title_data['time_display']}" if title_data["time_display"] else ""
+        result += f"{source_info}{time_info}\n"
         
+        # 4. 查看原文行 (单列一行)
         if link_url:
-            result += f"\n🔗 [查看原文]({link_url})"
+            # 严格按照飞书 Markdown 格式，不显示 URL，只显示文字链接
+            result += f"🔗 [查看原文]({link_url})"
+        
+        # 出现次数统计 (如果有)
+        if title_data["count"] > 1:
+            result += f" ({title_data['count']}次)"
             
         return result
 
