@@ -54,7 +54,7 @@ def format_title_for_platform(
     # 获取关键词标签（platform 模式使用）
     keyword = title_data.get("matched_keyword", "") if show_keyword else ""
 
-   if platform == "feishu":
+    if platform == "feishu":
         # 1. 准备数据
         link_url = title_data["mobile_url"] or title_data["url"]
         cleaned_title = clean_title(title_data["title"])
